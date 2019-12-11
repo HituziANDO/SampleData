@@ -47,17 +47,17 @@ open class SampleData {
         return SampleData()
     }()
 
-    /// Imports sample data.
+    /// Imports sample data as a JSON object when specified file is not locked.
     ///
     /// - Parameters:
     ///   - fileName: A file name of sample data.
-    ///   - once: If true, reads only once.
+    ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
-    public func `import`(dataOfFile fileName: String, once: Bool = false) -> Any? {
+    public func `import`(dataOfFile fileName: String, lock: Bool = false) -> Any? {
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
 
-        if once && isLocked(lockFilePath) {
+        if lock && isLocked(lockFilePath) {
             return nil
         }
 
@@ -66,8 +66,8 @@ open class SampleData {
                 let json = try String(contentsOfFile: filePath)
                 let obj  = try JSONSerialization.jsonObject(with: json.data(using: .utf8)!, options: .allowFragments)
 
-                if once {
-                    try lock(lockFilePath)
+                if lock {
+                    try lockFile(lockFilePath)
                 }
 
                 return obj
@@ -83,57 +83,62 @@ open class SampleData {
         return nil
     }
 
-    /// Imports sample data.
+    /// Imports sample data as a object of specified type when specified file is not locked.
     ///
     /// - Parameters:
     ///   - fileName: A file name of sample data.
     ///   - cls: A model's class.
-    ///   - once: If true, reads only once.
+    ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
-    public func `import`<T: Decodable>(dataOfFile fileName: String, ofClass cls: T.Type, once: Bool = false) -> T? {
+    public func `import`<T: Decodable>(dataOfFile fileName: String, ofType cls: T.Type, lock: Bool = false) -> T? {
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
-        return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, once: once)
+        return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, lock: lock)
     }
 
-    /// Imports sample data in the main bundle.
+    /// Imports sample data in the main bundle as a object of specified type when specified file is not locked.
     /// 
     /// - Parameters:
     ///   - fileName: A file name of sample data in the main bundle.
     ///   - cls: A model's class.
-    ///   - once: If true, reads only once.
+    ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
-    public func `import`<T: Decodable>(dataOfMainBundleResource fileName: String, ofClass cls: T.Type, once: Bool = false) -> T? {
+    public func `import`<T: Decodable>(dataOfMainBundleResource fileName: String, ofType cls: T.Type, lock: Bool = false) -> T? {
         guard let filePath = Bundle.main.path(forResource: fileName, ofType: nil) else { return nil }
         let lockFilePath = "\(Self.dataDirectory)/\(fileName).lock"
-        return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, once: once)
+        return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, lock: lock)
     }
 
-    /// Exports data as a sample.
+    /// Exports data as a sample when specified file is not locked.
     ///
     /// - Parameters:
     ///   - data: A data.
     ///   - fileName: A file name of sample data.
-    ///   - once: If true, writes only once.
-    public func export<T: Encodable>(data: T, to fileName: String, once: Bool = false) {
+    ///   - lock: If true, locks the file import or export operation after exporting.
+    /// - Returns: true if exported the data, otherwise false.
+    public func export<T: Encodable>(data: T, to fileName: String, lock: Bool = false) -> Bool {
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
+        var success      = false
 
-        if once && isLocked(lockFilePath) {
-            return
+        if lock && isLocked(lockFilePath) {
+            return success
         }
 
         do {
             let encodedData = try JSONEncoder().encode(data)
             try encodedData.write(to: URL(fileURLWithPath: filePath), options: .atomic)
+            defer { success = true }
 
-            if once {
-                try lock(lockFilePath)
+            if lock {
+                try lockFile(lockFilePath)
             }
         }
         catch {
             print("[\(Self.className)] \(error)")
         }
+
+        return success
     }
 
     /// Unlocks specified file import or export operation.
@@ -153,7 +158,7 @@ open class SampleData {
         }
     }
 
-    /// Cleans all data in the "sampledata" directory.
+    /// Deletes all files in the "sampledata" directory.
     public func clean() {
         let path = Self.dataDirectory
 
@@ -173,8 +178,8 @@ open class SampleData {
 
     // MARK: private
 
-    private func `import`<T: Decodable>(_ cls: T.Type?, atFilePath filePath: String, lockFilePath: String, once: Bool) -> T? {
-        if once && isLocked(lockFilePath) {
+    private func `import`<T: Decodable>(_ cls: T.Type?, atFilePath filePath: String, lockFilePath: String, lock: Bool) -> T? {
+        if lock && isLocked(lockFilePath) {
             return nil
         }
 
@@ -183,8 +188,8 @@ open class SampleData {
                 let json = try String(contentsOfFile: filePath)
                 let obj  = try JSONDecoder().decode(cls!, from: json.data(using: .utf8)!)
 
-                if once {
-                    try lock(lockFilePath)
+                if lock {
+                    try lockFile(lockFilePath)
                 }
 
                 return obj
@@ -209,7 +214,7 @@ open class SampleData {
         return false
     }
 
-    private func lock(_ lockFilePath: String) throws {
+    private func lockFile(_ lockFilePath: String) throws {
         try "true".write(to: URL(fileURLWithPath: lockFilePath), atomically: true, encoding: .utf8)
     }
 }

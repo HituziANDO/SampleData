@@ -4,6 +4,8 @@
 
 import UIKit
 
+import Fakery
+
 class ViewController: UIViewController {
 
     @IBOutlet weak var textView:     UITextView!
@@ -19,7 +21,7 @@ class ViewController: UIViewController {
             print(json)
         }
 
-        if let user = SampleData.default.import(dataOfFile: "user.json", ofClass: User.self, once: true) {
+        if let user = SampleData.default.import(dataOfFile: "user.json", ofType: User.self, lock: true) {
             user.saveAsFirstUser()
         }
 
@@ -34,11 +36,18 @@ class ViewController: UIViewController {
     }
 
     @IBAction func exportButtonClicked(_ sender: Any) {
-        let user = User(name: "Hanako", country: "Japan", age: 25)
-        SampleData.default.export(data: user, to: "user.json")
+        let faker = Faker()
+        let user  = User(name: faker.name.name(),
+                         country: faker.address.country(),
+                         age: faker.number.randomInt(min: 20, max: 80))
+        if SampleData.default.export(data: user, to: "user.json") {
+            textView.text += "\nExported. Next, Restart app."
+        }
     }
 
     @IBAction func cleanButtonClicked(_ sender: Any) {
         SampleData.default.clean()
+
+        textView.text += "\nCleaned up."
     }
 }
