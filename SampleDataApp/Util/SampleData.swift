@@ -33,15 +33,22 @@ open class SampleData {
 
     private static let className = String(describing: SampleData.self)
 
+    /// If this property is true, any operation is ignored. It is false by default.
+    public static var  dryRun    = false
+
+    private let lockObject = NSLock()
+
     /// Returns the default instance. If the "sampledata" directory does not exist, it is created in the Documents directory.
     public static var `default`: SampleData = {
-        do {
-            if !FileManager.default.fileExists(atPath: dataDirectory) {
-                try FileManager.default.createDirectory(atPath: dataDirectory, withIntermediateDirectories: true)
+        if !dryRun {
+            do {
+                if !FileManager.default.fileExists(atPath: dataDirectory) {
+                    try FileManager.default.createDirectory(atPath: dataDirectory, withIntermediateDirectories: true)
+                }
             }
-        }
-        catch {
-            print("[\(className)] \(error)")
+            catch {
+                print("[\(className)] \(error)")
+            }
         }
 
         return SampleData()
@@ -54,6 +61,11 @@ open class SampleData {
     ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
     public func `import`(dataOfFile fileName: String, lock: Bool = false) -> Any? {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return nil }
+
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
 
@@ -91,6 +103,11 @@ open class SampleData {
     ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
     public func `import`<T: Decodable>(dataOfFile fileName: String, ofType cls: T.Type, lock: Bool = false) -> T? {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return nil }
+
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
         return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, lock: lock)
@@ -104,6 +121,11 @@ open class SampleData {
     ///   - lock: If true, locks the file import or export operation after importing.
     /// - Returns: Sample data.
     public func `import`<T: Decodable>(dataOfMainBundleResource fileName: String, ofType cls: T.Type, lock: Bool = false) -> T? {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return nil }
+
         guard let filePath = Bundle.main.path(forResource: fileName, ofType: nil) else { return nil }
         let lockFilePath = "\(Self.dataDirectory)/\(fileName).lock"
         return `import`(cls, atFilePath: filePath, lockFilePath: lockFilePath, lock: lock)
@@ -117,6 +139,11 @@ open class SampleData {
     ///   - lock: If true, locks the file import or export operation after exporting.
     /// - Returns: true if exported the data, otherwise false.
     public func export<T: Encodable>(data: T, to fileName: String, lock: Bool = false) -> Bool {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return false }
+
         let filePath     = "\(Self.dataDirectory)/\(fileName)"
         let lockFilePath = "\(filePath).lock"
         var success      = false
@@ -146,6 +173,11 @@ open class SampleData {
     /// - Parameters:
     ///   - fileName: A file name of sample data.
     public func unlock(_ fileName: String) {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return }
+
         let lockFilePath = "\(Self.dataDirectory)/\(fileName)" + (fileName.hasSuffix(".lock") ? "" : ".lock")
 
         do {
@@ -160,6 +192,11 @@ open class SampleData {
 
     /// Deletes all files in the "sampledata" directory.
     public func clean() {
+        lockObject.lock()
+        defer { lockObject.unlock() }
+
+        guard !Self.dryRun else { return }
+
         let path = Self.dataDirectory
 
         do {

@@ -17,6 +17,10 @@ class ViewController: UIViewController {
 
         print("SampleData Directory Path: \(SampleData.dataDirectory)")
 
+        #if !DEBUG
+        SampleData.dryRun = true
+        #endif
+
         if let json = SampleData.default.import(dataOfFile: "user.json") {
             print(json)
         }
