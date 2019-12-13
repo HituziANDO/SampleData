@@ -82,7 +82,7 @@ SampleData.default.unlock("user.json")
 
 ## Clean
 
-Deletes all sample data files and lock files in the datasample directory.
+Deletes all sample data files and lock files in the **sampledata** directory.
 
 ```swift
 SampleData.default.clean()
@@ -100,7 +100,7 @@ SampleData.dryRun = true
 
 ## Export Data
 
-Creates a sample data as JSON file into the sampledata directory. Given `data` object needs to conform to Encodable protocol.
+Creates a sample data as JSON file into the **sampledata** directory. Given `data` object needs to conform to Encodable protocol.
 
 ```swift
 let user = User(name: "Anne Hathaway",
